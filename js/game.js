@@ -528,8 +528,8 @@ function drawChar(x,yv,ang,moving,kind,o){
       ctx.beginPath();
       if (d==='D'){ ctx.moveTo(-.7,-37.4); ctx.lineTo(.7,-37.4); } else { ctx.moveTo(ox*1.3,-37.4); ctx.lineTo(-ox*5,-38); }
       ctx.stroke();
-      ctx.strokeStyle='#a5553f'; ctx.lineWidth=1.1; ctx.beginPath();
-      if (d==='D') ctx.arc(0,-33.8,2.8,.2*Math.PI,.8*Math.PI); else { ctx.moveTo(ox*3.5,-32.5); ctx.lineTo(ox*6.5,-33.4); }
+      ctx.strokeStyle='#b3624a'; ctx.lineWidth=1; ctx.beginPath();
+      if (d==='D') ctx.arc(0,-33.8,2.8,.2*Math.PI,.8*Math.PI); else { ctx.moveTo(ox*6,-32.4); ctx.quadraticCurveTo(ox*7.4,-32.2,ox*8.2,-33.2); }
       ctx.stroke();
     }
   } else {
