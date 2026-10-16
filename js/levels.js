@@ -4,6 +4,7 @@
 //   W  saborska fotelja (skrivanje iza nje)  G  hrpa gnojiva / otpada (skriva, usporava)
 //   T  stol   B  krevet   K  kauč   F  kuhinja   H  bolnički krevet   X  bala sijena   D  bačva otpada
 //   _  betonski pod   M  ministar s čašom vode   N  Teslin kip   Z  tabla GOSPIĆ
+// caughtLines: rečenice kod uhićenja samo za taj level; afera s fx:'mikroplastika' mijenja čaše i replike ministara.
 // trucks: kamioni koji voze u krug i guraju lopova; signs: natpisi na prednjoj strani zida; backdrop:'velebit' crta planinu iznad mape.
 //   A  afera (redom uzima stavke iz "afere")   S  PPD oltarić (+1 izjava)
 //   P  početna pozicija igrača                 C  izlaz / auto (otvara se kad su sve afere pokupljene)
@@ -36,6 +37,12 @@ const LEVELS = [
 "##############################"],
   patrols:[[[3,8],[27,8],[23,5],[16,5],[16,1],[27,1]], [[2,13],[10,16],[13,15],[15,10],[2,10]]],
   reinforce:[[27,16],[18,15],[20,13]],
+  caughtLines:[
+    'Dokazi su zakopani tri metra dublje. Pokušaj ponovno.',
+    'Slučaj je prekriven šoderom. Možeš nastaviti.',
+    'Uhićen si, ali županija ti je vratila dozvolu. Idemo opet.',
+    'Kamion je odvezao spis. Kamo? Bolje ne pitati.',
+    'Sanacija kreće čim se stvore pravni uvjeti. Tvoja također.'],
   trucks:[{wps:[[13,8],[27,8],[27,11],[13,11]], sp:68, lines:['Već treći dan vozim plastiku po krugu.','Kamo vozim? Bolje ne pitati.']}],
   signs:[
     {c:18, r:7, w:5, text:'PPK VELEBIT', bg:'#e9e4d6', fg:'#8a2a1f'},
@@ -47,7 +54,7 @@ const LEVELS = [
     {ico:'🚛', name:'Kamioni noću', val:120000, txt:'Građani su godinama prijavljivali kamione, često noću, i smrad.'},
     {ico:'📜', name:'Dozvola ukinuta pa vraćena', val:80000, txt:'Inspekcija traži ukidanje, županija u lipnju 2024. ukida, a u listopadu je opet izdaje istoj tvrtki.'},
     {ico:'🕳️', name:'Dublja jama', val:100000, txt:'Znali su da inspekcija dolazi za dva tjedna, pa otpad u dublju jamu i preko šoder, sumnjaju istražitelji.'},
-    {ico:'💧', name:'Pet ministara pije vodu', val:1, txt:'Pred kamerama: voda je ispravna. Nalaz o mikroplastici već je bio napisan, tvrdi oporba.'},
+    {ico:'💧', name:'Pet ministara pije vodu', val:1, fx:'mikroplastika', txt:'Pred kamerama: voda je ispravna. Nalaz o mikroplastici već je bio napisan, tvrdi oporba.'},
     {ico:'💶', name:'4 milijuna zarade', val:4000000, txt:'Toliko je posao donio, procjenjuju istražitelji. Sanacija bi mogla stajati oko 100 milijuna €.'}]
 },
 {

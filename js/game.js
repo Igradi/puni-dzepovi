@@ -110,6 +110,9 @@ let player, items, insps, rings, money, got, izjave, shrineUsed, reinforced, run
 let runMoney=LEVELS.map(()=>0), trucks=[];
 const MIN_LOOKS = [['#2f3542','#2b2b2b'],['#3b3f4a','#c9c9c9'],['#283044','#6b4a2b'],['#40444f','#1c1c1c'],['#2b2f38','#8a8a8a']];
 const MIN_LINES = ['Voda je ispravna!','Sve je pod kontrolom.','Živjeli!','Mjerenja su odlična.','Tko to širi paniku?'];
+// nakon afere s nalazom o mikroplastici ministri gledaju u čaše
+const MIN_LINES_MICRO = ['…možda ipak ne.','Što je ovo plavo u čaši?','Nalaz? Kakav nalaz?','Ja sam pio iz boce.','Ovo je sigurno od opozicije.'];
+let microPlastic=false;
 
 function mkInsp(wps, coat, hair){
   const [c,r]=wps[0];
@@ -121,7 +124,7 @@ function reset(){
   items = spots.map((s,i)=>({...s, x:s.c*T+16, y:s.r*T+16, def:L.afere[i%L.afere.length], got:false}));
   insps = L.patrols.map((p,k)=>mkInsp(p, ...INSP_LOOKS[k%INSP_LOOKS.length]));
   trucks = (L.trucks||[]).map(t=>({x:t.wps[0][0]*T+16, y:t.wps[0][1]*T+16, ang:0, wps:t.wps, wi:1, sp:t.sp||70, lines:t.lines, li:0, talkT:0, sayCd:3}));
-  rings=[]; money=0; got=0; izjave=2; shrineUsed=false; reinforced=false; everChased=false; noiseT=0; pBubble=null; marker=null;
+  rings=[]; money=0; got=0; izjave=2; microPlastic=false; shrineUsed=false; reinforced=false; everChased=false; noiseT=0; pBubble=null; marker=null;
   elapsed=0; moved=false; hintShown=false; gnojTip=false; chaseAlpha=0;
   toastQ.length=0; hideToast(); snapCam=true; hud();
 }
@@ -260,6 +263,7 @@ function update(dt){
   for (const it of items){
     if (!it.got && !player.hidden && Math.hypot(it.x-player.x,it.y-player.y)<20){
       it.got=true; got++; money+=it.def.val; sfx.pick(); hud();
+      if (it.def.fx==='mikroplastika') microPlastic=true;
       toast(it.def.name, `${it.def.txt} <em>+${eur.format(it.def.val)}</em>`);
       if (got===4 && !reinforced){ reinforced=true; const n=mkInsp(L.reinforce,'#9c7a4e','#1c1c1c'); n.state='inv'; insps.push(n); sfx.alarm(); toast('Pojačanje iz Luksemburga!','Još jedan istražitelj ulazi kroz garažu.',true); }
       if (allGot()){ sfx.fanfare(); toast('Aktovka je puna','Bježi do auta, prati zelenu strelicu.'); }
@@ -338,7 +342,7 @@ function showMenu(){
 }
 function caught(inWardrobe){
   catches++; sfx.siren();
-  const line = inWardrobe ? 'Vidjeli su te kako se skrivaš iza saborske fotelje. Sabor ti je skinuo imunitet.' : CAUGHT_LINES[Math.floor(Math.random()*CAUGHT_LINES.length)];
+  const line = inWardrobe ? 'Vidjeli su te kako se skrivaš iza saborske fotelje. Sabor ti je skinuo imunitet.' : (L.caughtLines||CAUGHT_LINES)[Math.floor(Math.random()*(L.caughtLines||CAUGHT_LINES).length)];
   showOverlay(`<p class="kicker">EUROLUPA · Zapisnik o uhićenju</p><h1 class="red">Uhićen!</h1><p>${line}</p>
     <div class="stats"><div class="stat"><span>Afere</span><b>${got}/${items.length}</b></div><div class="stat"><span>Opljačkano</span><b>${eur.format(money)}</b></div><div class="stat"><span>Uhićenja</span><b>${catches}</b></div></div>
     <p class="fine">Pravomoćnih presuda: 0.</p>
@@ -616,10 +620,13 @@ function drawChar(x,yv,ang,moving,kind,o){
   } else if (kind==='m'){
     // ministar s čašom vode
     ctx.fillStyle=o.hair; ctx.beginPath(); ctx.arc(0,-40,9.3,Math.PI,0); ctx.fill(); ctx.fillRect(-9.3,-41,2.4,5); ctx.fillRect(6.9,-41,2.4,5);
-    ctx.fillStyle='#222'; ctx.fillRect(-4,-37,2,2.2); ctx.fillRect(2,-37,2,2.2);
-    ctx.strokeStyle='#9a4f3a'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,-33.5,2.4,.2*Math.PI,.8*Math.PI); ctx.stroke();
+    const ey = o.micro ? -36 : -37; ctx.fillStyle='#222'; ctx.fillRect(-4+(o.micro?1:0),ey,2,2.2); ctx.fillRect(2+(o.micro?1:0),ey,2,2.2);
+    ctx.strokeStyle='#9a4f3a'; ctx.lineWidth=1; ctx.beginPath();
+    if (o.micro) ctx.arc(0,-30.6,2.4,1.2*Math.PI,1.8*Math.PI); else ctx.arc(0,-33.5,2.4,.2*Math.PI,.8*Math.PI);
+    ctx.stroke();
     const sip=o.sip||0, gx=9.5-5*sip, gy=-13-19*sip;
     ctx.fillStyle='rgba(170,215,255,.85)'; ctx.fillRect(gx-2.3,gy-8,4.6,7.5); ctx.fillStyle='#fff'; ctx.fillRect(gx-2.3,gy-8,4.6,1);
+    if (o.micro){ const cols=['#ff4d5e','#3d8bff','#ffcf4a','#6fe39a','#c86bff']; for (let k=0;k<6;k++){ ctx.fillStyle=cols[k%cols.length]; ctx.fillRect(gx-1.8+((k*7+Math.floor(tclock*3))%4)*.9, gy-6.5+((k*5)%6), 1, 1); } }
   } else {
     // plava kapa sa zvijezdom
     ctx.fillStyle='#2c63d9'; ctx.beginPath(); ctx.arc(0,-40,9.4,Math.PI,0); ctx.fill(); ctx.fillRect(-9.4,-41,18.8,3);
@@ -756,7 +763,7 @@ function render(){
   const dyn=[];
   for (const s of L.signs||[]) dyn.push({depth:(s.r+1)*T-0.005, f:()=>drawWallSign(s)});
   for (const t of trucks) dyn.push({depth:t.y+truckHalf(t)[1], f:()=>drawTruck(t)});
-  for (const m of ministers) dyn.push({depth:m.y, f:()=>drawChar(m.x, m.y*TILT, Math.PI/2, false, 'm', {coat:m.coat, hair:m.hair, sip:Math.pow(Math.max(0,Math.sin(tclock*1.2+m.seed)),6)})});
+  for (const m of ministers) dyn.push({depth:m.y, f:()=>drawChar(m.x, m.y*TILT, Math.PI/2, false, 'm', {coat:m.coat, hair:m.hair, sip:microPlastic ? .42 : Math.pow(Math.max(0,Math.sin(tclock*1.2+m.seed)),6), micro:microPlastic})});
   for (const it of items) if (!it.got) dyn.push({depth:it.y, f:()=>{ const b=Math.sin(tclock*3+it.c)*2.5; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='19px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif'; ctx.fillText(it.def.ico, it.x, it.y*TILT-16+b); ctx.textBaseline='alphabetic'; }});
   if (shrine) dyn.push({depth:shrine.y, f:()=>{ const x=shrine.x, y=shrine.y*TILT; ctx.fillStyle=shrineUsed?'#5d6070':'#7a5a12'; ctx.fillRect(x-2,y-22,4,22); ctx.fillStyle=shrineUsed?'#7a7d92':'#ffcf4a'; ctx.beginPath(); ctx.arc(x,y-28,10,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#1b1630'; ctx.fillRect(x-2,y-34,3,12); ctx.fillRect(x-2,y-34,7,3); ctx.fillRect(x+3,y-34,3,7); ctx.fillRect(x-2,y-29,7,3); label(x,y+10,'PPD',shrineUsed?'#7a7d92':'#ffcf4a',9); }});
   for (const i of insps) dyn.push({depth:i.y, f:()=>drawChar(i.x, i.y*TILT, i.ang, i.path.length>0 && i.frozen<=0, 'i', {coat:i.coat, hair:i.hair, seed:i.x, frozen:i.frozen>0})});
@@ -780,7 +787,7 @@ function render(){
     if (elapsed<4){ const b=Math.abs(Math.sin(tclock*5))*5; bubble(player.x, player.y*TILT-66*CHAR_S-b, 'TI', '#1b1630', '#ffcf4a', 14); }
   }
   if (pBubble) bubble(player.x, player.y*TILT-66*CHAR_S, pBubble.text, '#ffcf4a');
-  if (ministers.length && tclock%5<2.6){ const k=Math.floor(tclock/5), m=ministers[k%ministers.length]; bubble(m.x, m.y*TILT-50*CHAR_S, MIN_LINES[k%MIN_LINES.length], '#9fe3ff'); }
+  if (ministers.length && tclock%5<2.6){ const k=Math.floor(tclock/5), m=ministers[k%ministers.length]; const lines = microPlastic ? MIN_LINES_MICRO : MIN_LINES; bubble(m.x, m.y*TILT-50*CHAR_S, lines[k%lines.length], microPlastic?'#ffb2c1':'#9fe3ff'); }
   for (const t of trucks) if (t.talkT>0) bubble(t.x, t.y*TILT-34, t.lines[t.li], '#ffcf4a');
   if (allGot() && !player.hidden){
     const e=exits[0], ex=e.x, ey=(e.y+16)*TILT, px=player.x, py=player.y*TILT-20, a=Math.atan2(ey-py, ex-px), pul=Math.sin(tclock*6)*3;
