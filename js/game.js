@@ -2,7 +2,7 @@
 (() => {
 const T = 32;
 const FLOORS = '.,:;_';
-const SOLID = new Set(['#','W','T','B','K','F','H','X','D']);
+const SOLID = new Set(['#','W','T','B','K','F','H','X','D','M','N','Z']);
 const OPAQUE = new Set(['#','W','F','X']);
 
 
@@ -27,7 +27,7 @@ try { const s = JSON.parse(localStorage.getItem('pd_save2')||'null'); if (s) sav
 function persist(){ try { localStorage.setItem('pd_save2', JSON.stringify(save)); } catch(e) {} }
 
 // ---------- level data ----------
-let LI=0, L, grid, floorG, H, W, WW, WH, spots, wardrobes, exits, shrine, start, bg;
+let LI=0, L, grid, floorG, H, W, WW, WH, spots, wardrobes, exits, shrine, start, bg, ministers;
 function floorNear(M,r,c){
   for (let rad=1; rad<4; rad++) for (const [dr,dc] of [[0,-1],[0,1],[-1,0],[1,0],[-1,-1],[1,1],[-1,1],[1,-1]]){
     const ch = (M[r+dr*rad]||'')[c+dc*rad]; if (ch && FLOORS.includes(ch)) return ch;
@@ -38,7 +38,7 @@ function loadLevel(i){
   LI = i; L = LEVELS[i]; const M = L.map;
   H = M.length; W = M[0].length; WW = W*T; WH = H*T;
   grid = M.map(r=>r.split('')); floorG = M.map(r=>r.split(''));
-  spots=[]; wardrobes=[]; exits=[]; shrine=null; start={c:1,r:1};
+  spots=[]; wardrobes=[]; exits=[]; shrine=null; start={c:1,r:1}; ministers=[];
   for (let r=0;r<H;r++) for (let c=0;c<W;c++){
     const ch = M[r][c];
     if (ch==='G') floorG[r][c] = ';';
@@ -48,6 +48,7 @@ function loadLevel(i){
     if (ch==='S'){ shrine={c,r,x:c*T+16,y:r*T+16}; grid[r][c]=floorG[r][c]; }
     if (ch==='W') wardrobes.push({c,r,x:c*T+16,y:r*T+16});
     if (ch==='C') exits.push({c,r,x:c*T+16,y:r*T+16});
+    if (ch==='M'){ const k=ministers.length; ministers.push({c,r,x:c*T+16,y:r*T+16,coat:MIN_LOOKS[k%MIN_LOOKS.length][0],hair:MIN_LOOKS[k%MIN_LOOKS.length][1],seed:k*1.7}); }
   }
   buildBg();
 }
@@ -106,7 +107,9 @@ const sfx = {
 
 // ---------- game state ----------
 let player, items, insps, rings, money, got, izjave, shrineUsed, reinforced, running=false, inMenu=true, elapsed=0, everChased=false, noiseT=0, pBubble=null, tclock=0, marker=null, runMode=false, moved=false, hintShown=false, gnojTip=false, chaseAlpha=0, catches=0;
-let runMoney=LEVELS.map(()=>0);
+let runMoney=LEVELS.map(()=>0), trucks=[];
+const MIN_LOOKS = [['#2f3542','#2b2b2b'],['#3b3f4a','#c9c9c9'],['#283044','#6b4a2b'],['#40444f','#1c1c1c'],['#2b2f38','#8a8a8a']];
+const MIN_LINES = ['Voda je ispravna!','Sve je pod kontrolom.','Živjeli!','Mjerenja su odlična.','Tko to širi paniku?'];
 
 function mkInsp(wps, coat, hair){
   const [c,r]=wps[0];
@@ -117,6 +120,7 @@ function reset(){
   player = {x:start.c*T+16, y:start.r*T+16, ang:-Math.PI/2, hidden:null, path:[], pendingHide:null, runTrip:false, moving:false};
   items = spots.map((s,i)=>({...s, x:s.c*T+16, y:s.r*T+16, def:L.afere[i%L.afere.length], got:false}));
   insps = L.patrols.map((p,k)=>mkInsp(p, ...INSP_LOOKS[k%INSP_LOOKS.length]));
+  trucks = (L.trucks||[]).map(t=>({x:t.wps[0][0]*T+16, y:t.wps[0][1]*T+16, ang:0, wps:t.wps, wi:1, sp:t.sp||70, lines:t.lines, li:0, talkT:0, sayCd:3}));
   rings=[]; money=0; got=0; izjave=2; shrineUsed=false; reinforced=false; everChased=false; noiseT=0; pBubble=null; marker=null;
   elapsed=0; moved=false; hintShown=false; gnojTip=false; chaseAlpha=0;
   toastQ.length=0; hideToast(); snapCam=true; hud();
@@ -296,6 +300,18 @@ function update(dt){
     if ((!player.hidden || i.sawHide) && Math.hypot(player.x-i.x,player.y-i.y)<22){ caught(i.sawHide && player.hidden); return; }
   }
   chaseAlpha += ((anyChase?1:0)-chaseAlpha)*Math.min(1,dt*4);
+  for (const t of trucks){
+    const [c,r]=t.wps[t.wi], tx=c*T+16, ty=r*T+16, dx=tx-t.x, dy=ty-t.y, d=Math.hypot(dx,dy), s=t.sp*dt;
+    if (d<=s){ t.x=tx; t.y=ty; t.wi=(t.wi+1)%t.wps.length; } else { t.x+=dx/d*s; t.y+=dy/d*s; t.ang=Math.atan2(dy,dx); }
+    if (!player.hidden){
+      const [hw,hd]=truckHalf(t), px=player.x-t.x, py=player.y-t.y, ox=hw+11-Math.abs(px), oy=hd+11-Math.abs(py);
+      if (ox>0 && oy>0){
+        const nx = ox<oy ? player.x+Math.sign(px||1)*ox : player.x, ny = ox<oy ? player.y : player.y+Math.sign(py||1)*oy;
+        if (!blocked(nx,ny,10)){ player.x=nx; player.y=ny; player.path=[]; marker=null; }
+      }
+    }
+    if (t.talkT>0) t.talkT-=dt; else if ((t.sayCd-=dt)<=0){ t.talkT=3; t.sayCd=8; t.li=(t.li+1)%t.lines.length; }
+  }
   rings = rings.filter(rg => (rg.r += 260*dt) < rg.max);
   syncButtons();
 }
@@ -373,7 +389,7 @@ function startLevel(i){
 
 // ---------- rendering (nagnuta 3/4 kamera) ----------
 const TILT = 0.7, PAD = 36;
-const HGT = {'#':26,'W':30,'F':13,'T':9,'B':7,'K':11,'H':9,'X':15,'D':14};
+const HGT = {'#':26,'W':30,'F':13,'T':9,'B':7,'K':11,'H':9,'X':15,'D':14,'N':12,'Z':5};
 let vw=0, vh=0, dpr=1, scale=1, camX=0, camY=0, snapCam=true, blocks=[];
 const VH = () => WH*TILT + PAD;
 function resize(){
@@ -427,6 +443,7 @@ function buildBg(){
     run = prev && prev.r===b.r && prev.c===b.c-1 ? run+1 : 0; prev=b;
     b.logo = run%2===0;
   }
+  for (const s of L.signs||[]) for (const b of blocks) if (b.r===s.r && b.c>=s.c && b.c<s.c+s.w) b.logo=false;
 }
 // --- 3D blokovi (zidovi, namještaj) ---
 function drawBlock(b){
@@ -465,14 +482,27 @@ function drawBlock(b){
     ctx.fillStyle='#4f111a'; rr(ctx,X-1,y1-16,5,15,2); ctx.fill(); rr(ctx,X+Wd-4,y1-16,5,15,2); ctx.fill();
     return;
   }
-  const PAL = {D:['#d4a92a','#a8831b'],F:['#f3f6f8','#b9c4cb'],T:['#c98b4e','#9b6232'],B:['#efe9fb','#6d3f86'],K:['#7a8aa3','#4f5d73'],H:['#ffffff','#8fa3b8'],X:['#e2c25a','#c79f3a']}[ch];
+  const PAL = {N:['#b5b7bb','#8a8d92'],Z:['#6b6f78','#4a4e57'],D:['#d4a92a','#a8831b'],F:['#f3f6f8','#b9c4cb'],T:['#c98b4e','#9b6232'],B:['#efe9fb','#6d3f86'],K:['#7a8aa3','#4f5d73'],H:['#ffffff','#8fa3b8'],X:['#e2c25a','#c79f3a']}[ch];
   ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x+T/2,y1-1,T/2,4,0,0,Math.PI*2); ctx.fill();
   // prednja strana
   ctx.fillStyle=PAL[1]; ctx.fillRect(X,y1-h,Wd,h);
   // gornja strana
   ctx.fillStyle=PAL[0]; ctx.fillRect(X,y0-h,Wd,th);
   const ty=y0-h;
-  if (ch==='D'){
+  if (ch==='N'){
+    // Teslin kip na postolju
+    const cx=x+T/2, by=ty+th/2;
+    ctx.fillStyle='#4d6b5a'; ctx.fillRect(cx-4,by-9,3,9); ctx.fillRect(cx+1,by-9,3,9);
+    rr(ctx,cx-6,by-27,12,20,4); ctx.fill(); ctx.fillStyle='#3e5a4a'; ctx.fillRect(cx-1,by-27,2,18);
+    ctx.fillStyle='#5f806c'; ctx.beginPath(); ctx.arc(cx,by-32,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a5243'; ctx.beginPath(); ctx.arc(cx,by-34,5.2,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#f2f2ee'; ctx.font='800 6px "Barlow Semi Condensed",sans-serif'; ctx.textAlign='center'; ctx.fillText('N. TESLA',cx,y1-h/2+2.5);
+  } else if (ch==='Z'){
+    // tabla naselja
+    ctx.fillStyle='#9aa0a8'; ctx.fillRect(X+4,ty-14,2,15); ctx.fillRect(X+Wd-6,ty-14,2,15);
+    ctx.fillStyle='#f4f4f0'; rr(ctx,x-7,ty-28,T+14,14,2); ctx.fill(); ctx.strokeStyle='#1d1d1d'; ctx.lineWidth=1.4; ctx.stroke();
+    ctx.fillStyle='#111'; ctx.font='800 10px "Barlow Semi Condensed",sans-serif'; ctx.textAlign='center'; ctx.fillText('GOSPIĆ',x+T/2,ty-17.5);
+  } else if (ch==='D'){
     // bačva s opasnim otpadom
     ctx.fillStyle='#2b2b2b'; ctx.fillRect(X,y1-h+3,Wd,2.5); ctx.fillRect(X,y1-5,Wd,2.5);
     ctx.fillStyle='#c4951f'; ctx.beginPath(); ctx.ellipse(x+T/2,ty+th/2,Wd/2-2,th/2-3,0,0,Math.PI*2); ctx.fill();
@@ -522,15 +552,15 @@ function drawChar(x,yv,ang,moving,kind,o){
   if (isP) drawBag();
   // tijelo
   ctx.fillStyle=suit; rr(ctx,-9,-30,18,21,6); ctx.fill();
-  if (!isP){ ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fillRect(-1,-28,2,18); ctx.fillStyle=shade(o.coat,.8); ctx.fillRect(-9,-14,18,3); }
-  if (isP && d!=='U'){
+  if (kind==='i'){ ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fillRect(-1,-28,2,18); ctx.fillStyle=shade(o.coat,.8); ctx.fillRect(-9,-14,18,3); }
+  if ((isP||kind==='m') && d!=='U'){
     // tamnoplavo odijelo: bijela košulja, kravata s točkicama, značka sa zastavicom
     const side = d==='L'||d==='R', fx = side ? (d==='R'?4:-4) : 0;
     ctx.fillStyle='#f4f6fa'; ctx.beginPath(); ctx.moveTo(fx-(side?2:4.5),-30); ctx.lineTo(fx+(side?2:4.5),-30); ctx.lineTo(fx,-19); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#1a1d2b'; ctx.beginPath(); ctx.moveTo(fx-1.3,-29); ctx.lineTo(fx+1.3,-29); ctx.lineTo(fx+1.9,-19); ctx.lineTo(fx,-16.5); ctx.lineTo(fx-1.9,-19); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#c9cfe0'; for (const [tx,ty] of [[-.6,-26],[.6,-23],[-.6,-20]]) ctx.fillRect(fx+tx-.4,ty,.8,.8);
     ctx.strokeStyle='#18213a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx-(side?2:4.5),-30); ctx.lineTo(fx-1.5,-17); ctx.moveTo(fx+(side?2:4.5),-30); ctx.lineTo(fx+1.5,-17); ctx.stroke();
-    if (d==='D'){ ctx.fillStyle='#d8262f'; ctx.fillRect(4,-25,3.4,1); ctx.fillStyle='#fff'; ctx.fillRect(4,-24,3.4,1); ctx.fillStyle='#1f4fa8'; ctx.fillRect(4,-23,3.4,1); }
+    if (d==='D' && isP){ ctx.fillStyle='#d8262f'; ctx.fillRect(4,-25,3.4,1); ctx.fillStyle='#fff'; ctx.fillRect(4,-24,3.4,1); ctx.fillStyle='#1f4fa8'; ctx.fillRect(4,-23,3.4,1); }
   }
   // ruke
   ctx.fillStyle=suit;
@@ -539,9 +569,9 @@ function drawChar(x,yv,ang,moving,kind,o){
   else { ctx.fillRect(-12,-28+sw,5,14); ctx.fillRect(7,-28-sw,5,14); }
   ctx.fillStyle='#f0c39b';
   if (d==='L'||d==='R') { ctx.beginPath(); ctx.arc(sw,-12,3,0,Math.PI*2); ctx.fill(); }
-  else { ctx.beginPath(); ctx.arc(-9.5,-13+sw,2.8,0,Math.PI*2); ctx.arc(9.5,-13-sw,2.8,0,Math.PI*2); ctx.fill(); }
+  else { const sip=o.sip||0; ctx.beginPath(); ctx.arc(-9.5,-13+sw,2.8,0,Math.PI*2); ctx.arc(9.5-5*sip,-13-sw-19*sip,2.8,0,Math.PI*2); ctx.fill(); }
   // povećalo
-  if (!isP && d!=='U'){ const mx = d==='L'?-13:13; ctx.strokeStyle='#3a3a3a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(d==='D'?9.5:sw,-13); ctx.lineTo(mx,-20); ctx.stroke(); ctx.fillStyle='rgba(200,235,255,.85)'; ctx.strokeStyle='#e8e8e8'; ctx.beginPath(); ctx.arc(mx,-24,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+  if (kind==='i' && d!=='U'){ const mx = d==='L'?-13:13; ctx.strokeStyle='#3a3a3a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(d==='D'?9.5:sw,-13); ctx.lineTo(mx,-20); ctx.stroke(); ctx.fillStyle='rgba(200,235,255,.85)'; ctx.strokeStyle='#e8e8e8'; ctx.beginPath(); ctx.arc(mx,-24,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
   // glava s fotografije (bobblehead); straga se vidi samo sijeda kosa
   if (isP && imgOk(HEAD.calm)){
     const hh=32, cy=-44;
@@ -583,6 +613,13 @@ function drawChar(x,yv,ang,moving,kind,o){
       if (d==='D') ctx.arc(0,-33.8,2.8,.2*Math.PI,.8*Math.PI); else { ctx.moveTo(ox*6,-32.4); ctx.quadraticCurveTo(ox*7.4,-32.2,ox*8.2,-33.2); }
       ctx.stroke();
     }
+  } else if (kind==='m'){
+    // ministar s čašom vode
+    ctx.fillStyle=o.hair; ctx.beginPath(); ctx.arc(0,-40,9.3,Math.PI,0); ctx.fill(); ctx.fillRect(-9.3,-41,2.4,5); ctx.fillRect(6.9,-41,2.4,5);
+    ctx.fillStyle='#222'; ctx.fillRect(-4,-37,2,2.2); ctx.fillRect(2,-37,2,2.2);
+    ctx.strokeStyle='#9a4f3a'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,-33.5,2.4,.2*Math.PI,.8*Math.PI); ctx.stroke();
+    const sip=o.sip||0, gx=9.5-5*sip, gy=-13-19*sip;
+    ctx.fillStyle='rgba(170,215,255,.85)'; ctx.fillRect(gx-2.3,gy-8,4.6,7.5); ctx.fillStyle='#fff'; ctx.fillRect(gx-2.3,gy-8,4.6,1);
   } else {
     // plava kapa sa zvijezdom
     ctx.fillStyle='#2c63d9'; ctx.beginPath(); ctx.arc(0,-40,9.4,Math.PI,0); ctx.fill(); ctx.fillRect(-9.4,-41,18.8,3);
@@ -596,6 +633,53 @@ function drawChar(x,yv,ang,moving,kind,o){
     }
   }
   ctx.restore();
+}
+function truckHalf(t){ return Math.abs(Math.cos(t.ang))>=Math.abs(Math.sin(t.ang)) ? [30,13] : [13,30]; }
+function drawBox(xa,xb,ya,yb,h,top,front){
+  ctx.fillStyle=front; ctx.fillRect(xa,yb*TILT-h,xb-xa,h);
+  ctx.fillStyle=top; ctx.fillRect(xa,ya*TILT-h,xb-xa,(yb-ya)*TILT);
+}
+function drawTruck(t){
+  // kamion s otpadom: kabina sprijeda, kontejner straga
+  const [hw,hd]=truckHalf(t), hor=hw>hd, fwd = hor ? Math.sign(Math.cos(t.ang)||1) : Math.sign(Math.sin(t.ang)||1);
+  const x0=t.x-hw, x1=t.x+hw, y0=t.y-hd, y1=t.y+hd, CAB=16;
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(t.x,y1*TILT,hw+3,5,0,0,Math.PI*2); ctx.fill();
+  let cab, box;
+  if (hor){ cab = fwd>0 ? [x1-CAB,x1,y0,y1] : [x0,x0+CAB,y0,y1]; box = fwd>0 ? [x0,x1-CAB-1,y0,y1] : [x0+CAB+1,x1,y0,y1]; }
+  else { cab = fwd>0 ? [x0,x1,y1-CAB,y1] : [x0,x1,y0,y0+CAB]; box = fwd>0 ? [x0,x1,y0,y1-CAB-1] : [x0,x1,y0+CAB+1,y1]; }
+  const parts = [[...box,20,'#4b7a52','#355a3b','box'],[...cab,15,'#eef1f4','#c3c9d1','cab']].sort((a,b)=>a[3]-b[3]);
+  for (const [xa,xb,ya,yb,h,top,front,kind] of parts){
+    drawBox(xa,xb,ya,yb,h,top,front);
+    if (kind==='box'){ const hh=hash(Math.round(xa),Math.round(ya)); ctx.fillStyle='#2b2d33';
+      for (let k=0;k<4;k++){ ctx.beginPath(); ctx.arc(xa+5+((xb-xa-10)*(k+.5)/4), ya*TILT-h+((yb-ya)*TILT)*(.35+.3*((hh>>k)&1)), 4,0,Math.PI*2); ctx.fill(); }
+      ctx.fillStyle='#e0b02a'; ctx.fillRect(xa+3,yb*TILT-h+6,xb-xa-6,2); }
+    else { ctx.fillStyle='#7fb3e0';
+      if (hor) ctx.fillRect(fwd>0?xb-5:xa+1, ya*TILT-h+2, 4, (yb-ya)*TILT-4);
+      else if (fwd>0) ctx.fillRect(xa+3,yb*TILT-h+2,xb-xa-6,6); else ctx.fillRect(xa+3,ya*TILT-h+1,xb-xa-6,3); }
+  }
+  ctx.fillStyle='#151515'; for (const wx of hor?[x0+7,x1-9]:[x0+3,x1-7]) ctx.fillRect(wx,y1*TILT-4,6,4);
+}
+function drawWallSign(s){
+  const x0=s.c*T+3, x1=(s.c+s.w)*T-3, yb=(s.r+1)*T*TILT, h=HGT['#'], y=yb-h/2-8;
+  ctx.fillStyle=s.bg; rr(ctx,x0,y,x1-x0,16,s.cloth?1:3); ctx.fill();
+  if (s.cloth){ ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x0-3,y-4); ctx.moveTo(x1,y); ctx.lineTo(x1+3,y-4); ctx.stroke(); }
+  else { ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1.2; ctx.stroke(); }
+  ctx.fillStyle=s.fg; ctx.font=`${s.cloth?'800 11px "Barlow Semi Condensed"':'400 10px Bungee'},sans-serif`; ctx.textAlign='center'; ctx.fillText(s.text,(x0+x1)/2,y+12);
+}
+function drawBackdrop(){
+  // Velebit u noći iznad mape
+  if (L.backdrop!=='velebit') return;
+  const top=-PAD-170, base=-18;
+  ctx.fillStyle='rgba(255,255,255,.55)'; for (let k=0;k<40;k++){ const h=hash(k,7); ctx.fillRect(h%WW, top+((h>>9)%110), 1.5, 1.5); }
+  ctx.fillStyle='rgba(255,240,200,.85)'; ctx.beginPath(); ctx.arc(WW*.82,top+30,12,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#0a1128'; ctx.beginPath(); ctx.arc(WW*.82+5,top+27,11,0,Math.PI*2); ctx.fill();
+  for (const [col,amp,step,off] of [['#2a3868',135,74,3],['#3a4b85',95,56,11]]){
+    const pts=[]; for (let x=-step; x<=WW+step; x+=step){ const h=hash(Math.round(x/step)+off,off); pts.push([x+(h%20)-10, base-amp*(.45+((h>>5)%100)/180)]); }
+    ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(-step,base); for (const [x,y] of pts) ctx.lineTo(x,y); ctx.lineTo(WW+step,base); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(228,235,252,.9)';
+    for (const [x,y] of pts) if (y<base-amp*.6){ ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-9,y+10); ctx.lineTo(x-3,y+7); ctx.lineTo(x+2,y+11); ctx.lineTo(x+9,y+10); ctx.closePath(); ctx.fill(); }
+  }
+  ctx.fillStyle='rgba(205,215,245,.6)'; ctx.font='400 14px Bungee,sans-serif'; ctx.textAlign='left'; ctx.fillText('V E L E B I T', 16, base-36);
 }
 function label(x,y,text,col,size=10){ ctx.font=`800 ${size}px "Barlow Semi Condensed",sans-serif`; ctx.textAlign='center'; ctx.fillStyle=col; ctx.fillText(text,x,y); }
 function bubble(x,y,text,col='#fff',bg='rgba(15,22,48,.93)',size=11){
@@ -666,9 +750,13 @@ function render(){
   const ty = sh<=vh ? -(vh-sh)/2 : clamp(focusY*scale-vh/2, 0, sh-vh);
   if (snapCam){ camX=tx; camY=ty; snapCam=false; } else { camX+=(tx-camX)*.14; camY+=(ty-camY)*.14; }
   ctx.setTransform(dpr*scale,0,0,dpr*scale,-camX*dpr,-camY*dpr+PAD*dpr*scale);
+  drawBackdrop();
   drawGround();
   // dubinski sortirani sloj
   const dyn=[];
+  for (const s of L.signs||[]) dyn.push({depth:(s.r+1)*T-0.005, f:()=>drawWallSign(s)});
+  for (const t of trucks) dyn.push({depth:t.y+truckHalf(t)[1], f:()=>drawTruck(t)});
+  for (const m of ministers) dyn.push({depth:m.y, f:()=>drawChar(m.x, m.y*TILT, Math.PI/2, false, 'm', {coat:m.coat, hair:m.hair, sip:Math.pow(Math.max(0,Math.sin(tclock*1.2+m.seed)),6)})});
   for (const it of items) if (!it.got) dyn.push({depth:it.y, f:()=>{ const b=Math.sin(tclock*3+it.c)*2.5; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='19px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif'; ctx.fillText(it.def.ico, it.x, it.y*TILT-16+b); ctx.textBaseline='alphabetic'; }});
   if (shrine) dyn.push({depth:shrine.y, f:()=>{ const x=shrine.x, y=shrine.y*TILT; ctx.fillStyle=shrineUsed?'#5d6070':'#7a5a12'; ctx.fillRect(x-2,y-22,4,22); ctx.fillStyle=shrineUsed?'#7a7d92':'#ffcf4a'; ctx.beginPath(); ctx.arc(x,y-28,10,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#1b1630'; ctx.fillRect(x-2,y-34,3,12); ctx.fillRect(x-2,y-34,7,3); ctx.fillRect(x+3,y-34,3,7); ctx.fillRect(x-2,y-29,7,3); label(x,y+10,'PPD',shrineUsed?'#7a7d92':'#ffcf4a',9); }});
   for (const i of insps) dyn.push({depth:i.y, f:()=>drawChar(i.x, i.y*TILT, i.ang, i.path.length>0 && i.frozen<=0, 'i', {coat:i.coat, hair:i.hair, seed:i.x, frozen:i.frozen>0})});
@@ -692,6 +780,8 @@ function render(){
     if (elapsed<4){ const b=Math.abs(Math.sin(tclock*5))*5; bubble(player.x, player.y*TILT-66*CHAR_S-b, 'TI', '#1b1630', '#ffcf4a', 14); }
   }
   if (pBubble) bubble(player.x, player.y*TILT-66*CHAR_S, pBubble.text, '#ffcf4a');
+  if (ministers.length && tclock%5<2.6){ const k=Math.floor(tclock/5), m=ministers[k%ministers.length]; bubble(m.x, m.y*TILT-50*CHAR_S, MIN_LINES[k%MIN_LINES.length], '#9fe3ff'); }
+  for (const t of trucks) if (t.talkT>0) bubble(t.x, t.y*TILT-34, t.lines[t.li], '#ffcf4a');
   if (allGot() && !player.hidden){
     const e=exits[0], ex=e.x, ey=(e.y+16)*TILT, px=player.x, py=player.y*TILT-20, a=Math.atan2(ey-py, ex-px), pul=Math.sin(tclock*6)*3;
     ctx.save(); ctx.translate(px+Math.cos(a)*(34+pul), py+Math.sin(a)*(34+pul)); ctx.rotate(a);
@@ -714,7 +804,7 @@ function screenToWorld(sx,sy){
 // ---------- loop ----------
 let last=performance.now();
 function frame(now){
-  const dt=Math.min(.05,(now-last)/1000); last=now;
+  const dt=Math.min(.05,Math.max(0,(now-last)/1000)); last=now;
   if (running) update(dt); else tclock+=dt;
   render();
   requestAnimationFrame(frame);
