@@ -1,8 +1,8 @@
 // Logika, crtanje i kontrole igre. Leveli su u levels.js.
 (() => {
 const T = 32;
-const FLOORS = '.,:;';
-const SOLID = new Set(['#','W','T','B','K','F','H','X']);
+const FLOORS = '.,:;_';
+const SOLID = new Set(['#','W','T','B','K','F','H','X','D']);
 const OPAQUE = new Set(['#','W','F','X']);
 
 
@@ -106,7 +106,7 @@ const sfx = {
 
 // ---------- game state ----------
 let player, items, insps, rings, money, got, izjave, shrineUsed, reinforced, running=false, inMenu=true, elapsed=0, everChased=false, noiseT=0, pBubble=null, tclock=0, marker=null, runMode=false, moved=false, hintShown=false, gnojTip=false, chaseAlpha=0, catches=0;
-let runMoney=[0,0,0];
+let runMoney=LEVELS.map(()=>0);
 
 function mkInsp(wps, coat, hair){
   const [c,r]=wps[0];
@@ -133,7 +133,7 @@ function syncButtons(){
   const st = `${runMode}|${!!player.hidden}|${nearW}`;
   if (st===lastBtnState) return; lastBtnState=st;
   const rb=$('runBtn'); rb.firstChild.textContent = runMode ? 'Trk ' : 'Hod '; rb.classList.toggle('on',runMode); rb.setAttribute('aria-pressed',String(runMode));
-  const hb=$('hideBtn'); hb.firstChild.textContent = player.hidden ? 'Izađi iz ormara ' : 'Sakrij se '; hb.classList.toggle('ready', nearW || !!player.hidden);
+  const hb=$('hideBtn'); hb.firstChild.textContent = player.hidden ? 'Izađi iza fotelje ' : 'Iza fotelje '; hb.classList.toggle('ready', nearW || !!player.hidden);
 }
 
 // ---------- toasts ----------
@@ -154,7 +154,7 @@ function toggleHide(){
   const w = nearestWardrobe(40);
   if (w){ hide(w); return; }
   const far = nearestWardrobe(9999);
-  if (far){ goTo(far.c, far.r, null, null, false); say('Idem do ormara…',1.2); }
+  if (far){ goTo(far.c, far.r, null, null, false); say('Idem iza fotelje…',1.2); }
 }
 function statement(){
   if (!running || player.hidden) return;
@@ -249,7 +249,7 @@ function update(dt){
     }
   }
   if (player.moving && run){ noiseT-=dt; if (noiseT<=0){ emitNoise(player.x,player.y,150); noiseT=.45; } } else noiseT=0;
-  if (gnoj && !gnojTip){ gnojTip=true; sfx.squish(); toast('U gnojivu si','Istražitelji te ne vide dok si u hrpi, osim izbliza.'); }
+  if (gnoj && !gnojTip){ gnojTip=true; sfx.squish(); toast(L.pile==='otpad'?'Zakopao si se u otpad':'U gnojivu si', L.pile==='otpad'?'Istražitelji te ne vide dok si u hrpi, osim izbliza. Smrdi, ali radi.':'Istražitelji te ne vide dok si u hrpi, osim izbliza.'); }
   if (!moved && elapsed>6 && !hintShown){ hintShown=true; toast('Kako se kreće?','Klikni ili dodirni bilo gdje na tlocrtu i lik ide tamo. Dvoklik = trk.',true); }
 
   // --- pickups ---
@@ -311,18 +311,18 @@ function showMenu(){
     <ul class="howto">
       <li><b>Klik / dodir</b> lik ide tamo</li>
       <li><b>Dvoklik</b> trči tamo, ali bučno</li>
-      <li><b>Klik na ormar</b> sakrij se unutra</li>
+      <li><b>Klik na fotelju</b> sakrij se iza nje: imunitet</li>
       <li><b>Nemam komentara</b> zamrzne istražitelje</li>
     </ul>
     <div class="levels">${lv}</div>
     <button class="go" id="playBtn">Igraj ${LEVELS[Math.min(save.unlocked,LEVELS.length-1)].kicker}</button>
-    <p class="fine">Svi likovi, stranke i agencije su izmišljeni. Svaka sličnost sa stvarnim osobama je, naravno, posve slučajna.</p>`);
+    <p class="fine">Satira. Afere u igri temelje se na medijskim izvještajima i sudskim odlukama. Gdje presude nema ili nije pravomoćna, vrijedi presumpcija nevinosti.</p>`);
   $('playBtn').onclick = () => startLevel(Math.min(save.unlocked, LEVELS.length-1));
   document.querySelectorAll('.lvl').forEach(b => b.onclick = () => startLevel(+b.dataset.lvl));
 }
 function caught(inWardrobe){
   catches++; sfx.siren();
-  const line = inWardrobe ? 'Vidjeli su te kako ulaziš u ormar. Ormar nije imunitet.' : CAUGHT_LINES[Math.floor(Math.random()*CAUGHT_LINES.length)];
+  const line = inWardrobe ? 'Vidjeli su te kako se skrivaš iza saborske fotelje. Sabor ti je skinuo imunitet.' : CAUGHT_LINES[Math.floor(Math.random()*CAUGHT_LINES.length)];
   showOverlay(`<p class="kicker">EUROLUPA · Zapisnik o uhićenju</p><h1 class="red">Uhićen!</h1><p>${line}</p>
     <div class="stats"><div class="stat"><span>Afere</span><b>${got}/${items.length}</b></div><div class="stat"><span>Opljačkano</span><b>${eur.format(money)}</b></div><div class="stat"><span>Uhićenja</span><b>${catches}</b></div></div>
     <p class="fine">Pravomoćnih presuda: 0.</p>
@@ -350,7 +350,7 @@ function finale(stars, ach, mm, ss){
   const pct = (33+Math.random()*6).toFixed(1).replace('.',',');
   showOverlay(`<p class="kicker">Izborna noć · Stožer PPD-a</p><h1 class="green">Mandat osvojen!</h1>
     <div class="stars">${starStr(stars)}</div>
-    <p>Sve tri aktovke su u autu, istražitelji su u čudu, a PPD je osvojio ${pct} % glasova. Ovo ti je ${save.mandates}. mandat zaredom.</p>
+    <p>Sve aktovke su u autu, istražitelji su u čudu, a PPD je osvojio ${pct} % glasova. Ovo ti je ${save.mandates}. mandat zaredom.</p>
     <div class="stats"><div class="stat"><span>Ukupno opljačkano</span><b>${eur.format(total)}</b></div><div class="stat"><span>Zadnji level</span><b>${mm}:${ss}</b></div><div class="stat"><span>Uhićenja</span><b>${catches}</b></div></div>
     <ul class="ach">${ach.map(([t,on])=>`<li class="${on?'on':''}">${t}</li>`).join('')}</ul>
     <p class="fine">Pravomoćnih presuda: 0. Afera u medijima: sve. Posljedica: nijedna.</p>
@@ -373,7 +373,7 @@ function startLevel(i){
 
 // ---------- rendering (nagnuta 3/4 kamera) ----------
 const TILT = 0.7, PAD = 36;
-const HGT = {'#':26,'W':30,'F':13,'T':9,'B':7,'K':11,'H':9,'X':15};
+const HGT = {'#':26,'W':30,'F':13,'T':9,'B':7,'K':11,'H':9,'X':15,'D':14};
 let vw=0, vh=0, dpr=1, scale=1, camX=0, camY=0, snapCam=true, blocks=[];
 const VH = () => WH*TILT + PAD;
 function resize(){
@@ -390,6 +390,7 @@ function drawFloor(g,c,r,ch){
   if (ch===','){ for(let i=0;i<2;i++)for(let j=0;j<2;j++){ g.fillStyle=((c*2+i+r*2+j)%2)?'#e9f0f2':'#cddbe0'; g.fillRect(x+i*16,y+j*16,16,16);} }
   else if (ch===':'){ g.fillStyle='#4aa89c'; g.fillRect(x,y,T,T); g.fillStyle='#43998e'; g.fillRect(x+((r%2)?4:20),y+12,6,6); }
   else if (ch===';'){ g.fillStyle='#7cc25a'; g.fillRect(x,y,T,T); const h=hash(c,r); g.fillStyle='#69ad49'; for(let k=0;k<3;k++){ g.fillRect(x+((h>>(k*5))%26)+2,y+((h>>(k*5+3))%24)+4,2,5); } }
+  else if (ch==='_'){ const h=hash(c,r); g.fillStyle='#b8b3a8'; g.fillRect(x,y,T,T); g.fillStyle='#a9a398'; g.fillRect(x,y,T,1); g.fillRect(x,y,1,T); g.fillStyle='#9c968a'; for(let k=0;k<3;k++) g.fillRect(x+((h>>(k*4))%28)+2,y+((h>>(k*4+2))%28)+2,2,2); if (h%5===0){ g.strokeStyle='#8f897c'; g.lineWidth=1; g.beginPath(); g.moveTo(x+6,y+8); g.lineTo(x+14,y+15); g.lineTo(x+12,y+24); g.stroke(); } }
   else { g.fillStyle='#e8a25a'; g.fillRect(x,y,T,T); g.fillStyle='#d48d47'; g.fillRect(x,y+10,T,2); g.fillRect(x,y+21,T,2); g.fillRect(x+((c+r)%2?8:22),y,2,10); }
 }
 function isWall(c,r){ return r<0||r>=H||c<0||c>=W||grid[r][c]==='#'; }
@@ -400,7 +401,15 @@ function buildBg(){
   for (let r=0;r<H;r++) for (let c=0;c<W;c++){
     const ch=grid[r][c];
     if (ch!=='#' && ch!=='C') drawFloor(g,c,r,floorG[r][c]);
-    if (ch==='G'){
+    if (ch==='G' && L.pile==='otpad'){
+      // hrpa otpada: vreće, folija, bačvica
+      const x=c*T, y=r*T, h=hash(c,r);
+      g.fillStyle='rgba(30,30,30,.3)'; g.beginPath(); g.ellipse(x+16,y+19,15,12,0,0,Math.PI*2); g.fill();
+      [[16,18,11,'#2b2d33'],[8,22,7,'#3a3d45'],[24,21,7,'#1f2126'],[15,10,7,'#4a4f5a']].forEach(([dx,dy,rad,col],k)=>{ g.fillStyle=col; g.beginPath(); g.arc(x+dx+((h>>k)%3)-1,y+dy,rad,0,Math.PI*2); g.fill(); });
+      g.fillStyle='#d7dde6'; g.fillRect(x+6+(h%8),y+12,6,3); g.fillStyle='#3fa7d6'; g.fillRect(x+18,y+8+(h%5),5,4);
+      g.fillStyle='#e0b02a'; g.fillRect(x+20,y+20,6,7); g.fillStyle='#1f2126'; g.fillRect(x+20,y+22,6,1.5);
+      g.fillStyle='rgba(120,200,90,.55)'; g.beginPath(); g.arc(x+11,y+25,2.5,0,Math.PI*2); g.fill();
+    } else if (ch==='G'){
       const x=c*T, y=r*T, h=hash(c,r);
       g.fillStyle='rgba(60,35,15,.3)'; g.beginPath(); g.ellipse(x+16,y+19,15,12,0,0,Math.PI*2); g.fill();
       [[16,18,12],[9,21,7],[23,21,7],[16,10,7]].forEach(([dx,dy,rad],k)=>{ g.fillStyle=k%2?'#7a4a24':'#8b5a2e'; g.beginPath(); g.arc(x+dx+((h>>k)%3)-1,y+dy,rad,0,Math.PI*2); g.fill(); });
@@ -411,6 +420,13 @@ function buildBg(){
   // sjene zidova i namještaja na podu
   g.fillStyle='rgba(10,17,40,.22)';
   for (const b of blocks){ if (b.ch==='#' && !isWall(b.c,b.r+1)) g.fillRect(b.c*T,(b.r+1)*T,T,7); }
+  // plakati s logom na vidljivim prednjim stranama zidova, svako drugo polje u nizu
+  let prev=null, run=0;
+  for (const b of blocks){
+    if (b.ch!=='#' || isWall(b.c,b.r+1)){ prev=null; continue; }
+    run = prev && prev.r===b.r && prev.c===b.c-1 ? run+1 : 0; prev=b;
+    b.logo = run%2===0;
+  }
 }
 // --- 3D blokovi (zidovi, namještaj) ---
 function drawBlock(b){
@@ -420,7 +436,8 @@ function drawBlock(b){
   const below = r+1<H ? grid[r+1][c] : '#';
   const showFront = ch!=='#' || below!=='#';
   if (ch==='#'){
-    if (showFront){ ctx.fillStyle='#173d8e'; ctx.fillRect(x,y1-h,T,h); ctx.fillStyle='#2350ad'; ctx.fillRect(x,y1-h,T,3); ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fillRect(x,y1-4,T,4); }
+    if (showFront){ ctx.fillStyle='#173d8e'; ctx.fillRect(x,y1-h,T,h); ctx.fillStyle='#2350ad'; ctx.fillRect(x,y1-h,T,3); ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fillRect(x,y1-4,T,4);
+      if (b.logo && imgOk(LOGO)){ const lw=T-4, lh=lw*LOGO.naturalHeight/LOGO.naturalWidth; ctx.drawImage(LOGO,x+2,y1-h/2-lh/2,lw,lh); } }
     ctx.fillStyle='#2a5bc0'; ctx.fillRect(x,y0-h,T,th);
     ctx.fillStyle='#5b93f0';
     if (!isWall(c,r-1)) ctx.fillRect(x,y0-h,T,3);
@@ -429,20 +446,38 @@ function drawBlock(b){
     if (below!=='#'){ ctx.fillStyle='#7aaaf7'; ctx.fillRect(x,y1-h-2,T,2); }
     return;
   }
-  const PAL = {W:['#6e4526','#8a5a33'],F:['#f3f6f8','#b9c4cb'],T:['#c98b4e','#9b6232'],B:['#efe9fb','#6d3f86'],K:['#7a8aa3','#4f5d73'],H:['#ffffff','#8fa3b8'],X:['#e2c25a','#c79f3a']}[ch];
+  if (ch==='W'){
+    // saborska fotelja: tko se sakrije iza nje, ima imunitet
+    const behind = player && player.hidden && player.hidden.c===c && player.hidden.r===r, cx=x+T/2;
+    ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(cx,y1-1,T/2,4,0,0,Math.PI*2); ctx.fill();
+    if (behind){
+      const k=(Math.sin(tclock*4)+1)/2; ctx.fillStyle=`rgba(255,207,74,${.18+k*.15})`; ctx.beginPath(); ctx.ellipse(cx,y1-h/2,T*.75,h*.8,0,0,Math.PI*2); ctx.fill();
+      // čuči iza naslona i viri preko ruba
+      const peek = Math.sin(tclock*1.6)*3, hx = cx+3+peek, hy = y1-h-15+Math.max(0,Math.sin(tclock*1.1))*5;
+      ctx.fillStyle='#243150'; rr(ctx,X+Wd-6,y1-h+3,7,13,3); ctx.fill();
+      if (imgOk(HEAD.calm)){ const hh=21, hw=hh*HEAD.calm.naturalWidth/HEAD.calm.naturalHeight; ctx.drawImage(HEAD.calm,hx-hw/2,hy,hw,hh); }
+    }
+    ctx.fillStyle='#5e1520'; rr(ctx,X+2,y1-h,Wd-4,h-8,6); ctx.fill();
+    ctx.fillStyle='#8a2432'; rr(ctx,X+4,y1-h+2,Wd-8,h-13,5); ctx.fill();
+    ctx.fillStyle='#d9a93a'; for (const [bx,by] of [[-5,8],[0,8],[5,8],[-2.5,14],[2.5,14]]){ ctx.beginPath(); ctx.arc(cx+bx,y1-h+by,1,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle='#a3313f'; rr(ctx,X+1,y1-12,Wd-2,6,3); ctx.fill();
+    ctx.fillStyle='#6a1822'; ctx.fillRect(X+1,y1-7,Wd-2,6);
+    ctx.fillStyle='#4f111a'; rr(ctx,X-1,y1-16,5,15,2); ctx.fill(); rr(ctx,X+Wd-4,y1-16,5,15,2); ctx.fill();
+    return;
+  }
+  const PAL = {D:['#d4a92a','#a8831b'],F:['#f3f6f8','#b9c4cb'],T:['#c98b4e','#9b6232'],B:['#efe9fb','#6d3f86'],K:['#7a8aa3','#4f5d73'],H:['#ffffff','#8fa3b8'],X:['#e2c25a','#c79f3a']}[ch];
   ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x+T/2,y1-1,T/2,4,0,0,Math.PI*2); ctx.fill();
   // prednja strana
   ctx.fillStyle=PAL[1]; ctx.fillRect(X,y1-h,Wd,h);
   // gornja strana
   ctx.fillStyle=PAL[0]; ctx.fillRect(X,y0-h,Wd,th);
   const ty=y0-h;
-  if (ch==='W'){
-    ctx.fillStyle='#5d3a20'; ctx.fillRect(X+Wd/2-1,y1-h+2,2,h-3); ctx.fillStyle='#ffcf4a'; ctx.fillRect(X+Wd/2-5,y1-h/2-2,3,4); ctx.fillRect(X+Wd/2+2,y1-h/2-2,3,4);
-    ctx.fillStyle='#57361d'; ctx.fillRect(X,ty,Wd,3);
-    if (player && player.hidden && player.hidden.c===c && player.hidden.r===r){
-      ctx.fillStyle='#111'; ctx.fillRect(X+Wd/2-2,y1-h+3,4,h-6);
-      const blink=Math.sin(tclock*2)>0.92; ctx.fillStyle='#fff'; ctx.fillRect(X+Wd/2-1.5,y1-h+9,3,blink?1:3);
-    }
+  if (ch==='D'){
+    // bačva s opasnim otpadom
+    ctx.fillStyle='#2b2b2b'; ctx.fillRect(X,y1-h+3,Wd,2.5); ctx.fillRect(X,y1-5,Wd,2.5);
+    ctx.fillStyle='#c4951f'; ctx.beginPath(); ctx.ellipse(x+T/2,ty+th/2,Wd/2-2,th/2-3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1f1f1f'; ctx.beginPath(); ctx.moveTo(x+T/2,y1-h+6.5); ctx.lineTo(x+T/2+4,y1-h+12.5); ctx.lineTo(x+T/2-4,y1-h+12.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#d4a92a'; ctx.fillRect(x+T/2-.6,y1-h+8.3,1.2,2.4);
   } else if (ch==='F'){
     ctx.strokeStyle='#58636b'; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(x+T/2,ty+th/2,7,5,0,0,Math.PI*2); ctx.stroke();
     ctx.fillStyle='#8a969e'; ctx.fillRect(X+4,y1-h+4,Wd-8,2);
@@ -462,13 +497,18 @@ function drawBlock(b){
   }
 }
 // --- likovi (uspravni, nagnuta kamera) ---
+const HEAD = {calm:new Image(), panic:new Image()};
+HEAD.calm.src='assets/lopov.png'; HEAD.panic.src='assets/lopov-panika.png';
+const LOGO = new Image(); LOGO.src='assets/logo.png';
+const CHAR_S = 1.3; // veličina lopova i istražitelja
+const imgOk = im => im.complete && im.naturalWidth>0;
 function dirOf(a){ const cx=Math.cos(a), sy=Math.sin(a); if (Math.abs(cx)>Math.abs(sy)) return cx>0?'R':'L'; return sy>0?'D':'U'; }
 function drawChar(x,yv,ang,moving,kind,o){
   const d=dirOf(ang), ph = moving ? Math.sin(tclock*14 + (o.seed||0)) : 0;
   const isP = kind==='p';
   const suit = isP ? '#243150' : o.coat;
   const sink = o.sink||0;
-  ctx.save(); ctx.translate(x,yv+sink);
+  ctx.save(); ctx.translate(x,yv+sink); ctx.scale(CHAR_S,CHAR_S);
   if (o.alpha!=null) ctx.globalAlpha=o.alpha;
   // sjena
   ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,0,12,4.5,0,0,Math.PI*2); ctx.fill();
@@ -502,7 +542,18 @@ function drawChar(x,yv,ang,moving,kind,o){
   else { ctx.beginPath(); ctx.arc(-9.5,-13+sw,2.8,0,Math.PI*2); ctx.arc(9.5,-13-sw,2.8,0,Math.PI*2); ctx.fill(); }
   // povećalo
   if (!isP && d!=='U'){ const mx = d==='L'?-13:13; ctx.strokeStyle='#3a3a3a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(d==='D'?9.5:sw,-13); ctx.lineTo(mx,-20); ctx.stroke(); ctx.fillStyle='rgba(200,235,255,.85)'; ctx.strokeStyle='#e8e8e8'; ctx.beginPath(); ctx.arc(mx,-24,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
-  // glava
+  // glava s fotografije (bobblehead); straga se vidi samo sijeda kosa
+  if (isP && imgOk(HEAD.calm)){
+    const hh=32, cy=-44;
+    if (d==='U'){
+      ctx.fillStyle='#a3a4aa'; ctx.beginPath(); ctx.ellipse(0,cy,12,15.5,0,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#cfd0d5'; ctx.lineWidth=1.3; ctx.beginPath(); for (const k of [-6,0,6]){ ctx.moveTo(k,cy-14); ctx.quadraticCurveTo(k*1.3,cy-4,k*.9,cy+8); } ctx.stroke();
+    } else {
+      const img = o.panic && imgOk(HEAD.panic) ? HEAD.panic : HEAD.calm, hw=hh*img.naturalWidth/img.naturalHeight;
+      ctx.save(); if (d==='L') ctx.scale(-1,1); ctx.drawImage(img,-hw/2,cy-hh/2,hw,hh); ctx.restore();
+    }
+    ctx.restore(); return;
+  }
   ctx.fillStyle='#f0c39b'; ctx.beginPath(); ctx.arc(0,-38,9,0,Math.PI*2); ctx.fill();
   if (isP){
     // sijeda kosa začešljana unatrag
@@ -603,7 +654,7 @@ function drawGround(){
 }
 function drawPlayerSprite(alpha){
   const g=inGnoj(player.x,player.y);
-  drawChar(player.x, player.y*TILT, player.ang, player.moving, 'p', {alpha: alpha!=null?alpha:(g?.6:1), sink: g?6:0});
+  drawChar(player.x, player.y*TILT, player.ang, player.moving, 'p', {alpha: alpha!=null?alpha:(g?.6:1), sink: g?6:0, panic: chaseAlpha>.5});
 }
 function render(){
   ctx.setTransform(dpr,0,0,dpr,0,0); ctx.fillStyle='#0a1128'; ctx.fillRect(0,0,vw,vh);
@@ -629,18 +680,18 @@ function render(){
   // "rendgen" obris igrača da se nikad ne izgubi iza zida
   if (!player.hidden) drawPlayerSprite(.3);
   // oblačići
-  for (const i of insps){ const by=i.y*TILT-52;
+  for (const i of insps){ const by=i.y*TILT-52*CHAR_S;
     if (i.frozen>0) bubble(i.x,by,'…bez komentara…','#9fb0e0');
     else if (i.state==='chase') bubble(i.x,by,'!','#ff4d5e','rgba(15,22,48,.93)',15);
     else if (i.state==='inv') bubble(i.x,by,'?','#ffcf4a','rgba(15,22,48,.93)',15);
     else if (i.alert>.05){ ctx.strokeStyle='#ffcf4a'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(i.x,by-6,5,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,i.alert)); ctx.stroke(); }
   }
-  if (player.hidden){ const w=player.hidden; bubble(w.x, w.y*TILT-HGT.W-14, 'skriven · klikni ormar za izlaz', '#ffcf4a'); }
+  if (player.hidden){ const w=player.hidden; bubble(w.x, w.y*TILT-HGT.W-14, 'iza fotelje · klikni je za izlaz', '#ffcf4a'); }
   else {
-    const w=nearestWardrobe(40); if (w && !player.path.length) bubble(w.x, w.y*TILT-HGT.W-12, 'E · sakrij se', '#6fe39a');
-    if (elapsed<4){ const b=Math.abs(Math.sin(tclock*5))*5; bubble(player.x, player.y*TILT-54-b, 'TI', '#1b1630', '#ffcf4a', 14); }
+    const w=nearestWardrobe(40); if (w && !player.path.length) bubble(w.x, w.y*TILT-HGT.W-12, 'E · iza fotelje', '#6fe39a');
+    if (elapsed<4){ const b=Math.abs(Math.sin(tclock*5))*5; bubble(player.x, player.y*TILT-66*CHAR_S-b, 'TI', '#1b1630', '#ffcf4a', 14); }
   }
-  if (pBubble) bubble(player.x, player.y*TILT-56, pBubble.text, '#ffcf4a');
+  if (pBubble) bubble(player.x, player.y*TILT-66*CHAR_S, pBubble.text, '#ffcf4a');
   if (allGot() && !player.hidden){
     const e=exits[0], ex=e.x, ey=(e.y+16)*TILT, px=player.x, py=player.y*TILT-20, a=Math.atan2(ey-py, ex-px), pul=Math.sin(tclock*6)*3;
     ctx.save(); ctx.translate(px+Math.cos(a)*(34+pul), py+Math.sin(a)*(34+pul)); ctx.rotate(a);
@@ -655,7 +706,7 @@ function render(){
 }
 function screenToWorld(sx,sy){
   const vx=(sx+camX)/scale, vy=(sy+camY)/scale-PAD;
-  // klik na ormar: gleda se cijeli nacrtani ormar, ne samo pod ispod njega
+  // klik na fotelju: gleda se cijela nacrtana fotelja, ne samo pod ispod nje
   for (const w of wardrobes){ const x=w.c*T, y0=w.r*T*TILT, y1=y0+T*TILT; if (vx>=x && vx<=x+T && vy>=y0-HGT.W && vy<=y1) return {x:w.x,y:w.y,ward:w}; }
   return {x:vx, y:vy/TILT};
 }

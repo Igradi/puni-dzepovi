@@ -1,17 +1,52 @@
 // Leveli igre "Puni Džepovi".
 // Legenda mape (svaki znak = jedno polje 32x32):
 //   #  zid            .  drveni pod       ,  pločice        :  tepih        ;  trava
-//   W  ormar (skrivanje)                  G  hrpa gnojiva (skriva, usporava)
-//   T  stol   B  krevet   K  kauč   F  kuhinja   H  bolnički krevet   X  bala sijena
+//   W  saborska fotelja (skrivanje iza nje)  G  hrpa gnojiva / otpada (skriva, usporava)
+//   T  stol   B  krevet   K  kauč   F  kuhinja   H  bolnički krevet   X  bala sijena   D  bačva otpada
+//   _  betonski pod
 //   A  afera (redom uzima stavke iz "afere")   S  PPD oltarić (+1 izjava)
 //   P  početna pozicija igrača                 C  izlaz / auto (otvara se kad su sve afere pokupljene)
 // patrols: lista ruta istražitelja, svaka ruta je niz [stupac, red] točaka.
 // reinforce: ruta istražitelja koji ulazi nakon 4. pokupljene afere.
 // vis: domet pogleda u pikselima, par: vrijeme (s) za treću zvjezdicu.
+// pile: 'otpad' crta G polja kao hrpe otpada umjesto gnojiva.
 const LEVELS = [
 {
-  name:'Stan', kicker:'Level 1', par:100, vis:158, patrolSp:50,
-  tip:'Klikni bilo gdje na tlocrt i Lojtrić ide tamo. Pokupi 7 afera pa bježi do auta u garaži.',
+  name:'Otpad u Lici', kicker:'Level 1', par:110, vis:160, patrolSp:50, pile:'otpad',
+  tip:'Bivši PPK Velebit, Gospić. Hrpe otpada te skrivaju, ali usporavaju. Kad zagusti, sakrij se iza saborske fotelje.',
+  map:[
+"##############################",
+"#;;;;;;;;;;;;;#______________#",
+"#;GG;;;;;;GG;;#_DD__DD__DD_A_#",
+"#;GG;;A;;;GG;;#_DD__DD__DD___#",
+"#;;;;;;;;;;;;;#__________W___#",
+"#;;;;;GG;;;;;;_____A_________#",
+"#;A;;;GG;;;;;;#______________#",
+"#;;;;;;;;;;;;;###_#####_######",
+"#;;;;;;;;;;;;;;;;;;;;;;;;;;;;#",
+"#;;GG;;;;;;;;;;;;;GG;;;;;S;;;#",
+"#;;GG;;;DDDD;;;;A;GG;;;;;;;;;#",
+"#;;;;;;;DDDD;;;;;;;;;;;;;;;;;#",
+"####;########;;;;#####;#######",
+"#,,,,,,,,,,,#;;;;#:::::::A:::#",
+"#,,A,,W,,TT,#;;GG#::W::::::::C",
+"#,,,,,,,,TT,;;;;;#:::::P:::::C",
+"#,,,,,,,,,,,#;;;;#::KK:::::::#",
+"##############################"],
+  patrols:[[[3,8],[27,8],[23,5],[16,5],[16,1],[27,1]], [[2,13],[10,16],[13,15],[15,10],[2,10]]],
+  reinforce:[[27,16],[19,13],[27,13]],
+  afere:[
+    {ico:'🗑️', name:'33.000 tona ispod zemlje', val:330000, txt:'Vještaci su na PPK Velebit našli 37.000 tona otpada. Gotovo 33.000 zakopano.'},
+    {ico:'♻️', name:'„Plastika za recikliranje“', val:200000, txt:'Na papiru reciklaža. U zemlji miješani i medicinski otpad, sumnja USKOK.'},
+    {ico:'🚛', name:'Kamioni svaki dan', val:120000, txt:'Vozačima rečeno da ne spavaju pred firmom jer ljudi pitaju kuda se toliko kamena prodaje.'},
+    {ico:'🌍', name:'Uvoz iz Italije i Slovenije', val:150000, txt:'Otpad je prešao granicu bez problema. Odgovornost još čeka na carini.'},
+    {ico:'📞', name:'„Osam komada riješeno ujutro“', val:80000, txt:'Iz iskaza svjedoka. Vozač je, kaže, govorio da je to kriminal.'},
+    {ico:'🕵️', name:'Inspektor pod istragom', val:50000, txt:'Bivši glavni državni inspektor uhićen zbog sumnje na korupciju, neslužbeno. Tko inspektira inspektore?'},
+    {ico:'🧻', name:'Prekrit ćemo do sredine listopada', val:1, txt:'Tako je najavljeno za odlagalište. Što se ne vidi, nije afera.'}]
+},
+{
+  name:'Vikendica na pašnjaku', kicker:'Level 2', par:100, vis:158, patrolSp:50,
+  tip:'Kuća se 11 godina vodila kao pašnjak. Klikni na tlocrt, pokupi 7 afera i bježi do auta. Kad zagusti, sjedni u saborsku fotelju.',
   map:[
 "##############################",
 "#:::::::::#,,,,,,,#..........#",
@@ -34,17 +69,17 @@ const LEVELS = [
   patrols:[[[27,3],[14,3],[5,2],[3,8],[26,8]], [[5,12],[14,12],[22,8],[14,8]]],
   reinforce:[[27,13],[20,11],[20,16],[27,15]],
   afere:[
-    {ico:'🔬', name:'Zlatni mikroskop', val:480000, txt:'Isti kao u bolnici, samo četiri puta skuplji.'},
-    {ico:'✉️', name:'Kuverta „za kavu“', val:75000, txt:'Kava je stvarno poskupjela.'},
-    {ico:'💩', name:'Faktura za gnojivo', val:36000, txt:'Na papiru ga ima više nego na njivi.'},
-    {ico:'🧸', name:'Fantomski vrtić', val:211300, txt:'Djece nema, EU potpora ima.'},
-    {ico:'📱', name:'SMS „šef će odobriti“', val:50000, txt:'Pobriši prije nego netko pita tko je šef.'},
-    {ico:'📋', name:'Natječaj s jednim ponuđačem', val:150000, txt:'Konkurencija je bila jaka: nitko se nije javio.'},
-    {ico:'🏠', name:'Imovinska kartica', val:1, txt:'Sve je naslijeđeno od tete iz Kanade.'}]
+    {ico:'🐄', name:'Kuća upisana kao pašnjak', val:250000, txt:'Jedanaest godina nije je bilo u katastru. Krave nisu prigovarale.'},
+    {ico:'💼', name:'Crni fond Fimi medije', val:9300000, txt:'Stranka pravomoćno kažnjena s 3,5 milijuna kuna. Sitniš.'},
+    {ico:'🛢️', name:'INA-MOL', val:10000000, txt:'Pravomoćno: 10 milijuna eura mita za upravljanje INA-om.'},
+    {ico:'💻', name:'Softver za 1,3 milijuna', val:1300000, txt:'Nagodba: dvije godine zatvora. Program se još instalira.'},
+    {ico:'🍽️', name:'Ručak na račun EU', val:10000, txt:'Sedam mjeseci zatvora. Desert je ipak bio skup.'},
+    {ico:'📜', name:'Potpore „po babi i po stričevima“', val:500000, txt:'Tako se zove optužnica. Optuženi sve niječu.'},
+    {ico:'🏃', name:'Bijeg prije skidanja imuniteta', val:1, txt:'Granica pređena par sati prije glasanja u Saboru. Austrija ga je ipak vratila.'}]
 },
 {
-  name:'Bolnica', kicker:'Level 2', par:140, vis:168, patrolSp:54,
-  tip:'Tri istražitelja obilaze odjele. Ormari su u laboratoriju, uredu i sobama. Dvoklik = trk, ali čuju te.',
+  name:'Afera Mikroskopi', kicker:'Level 3', par:140, vis:168, patrolSp:54,
+  tip:'Tri istražitelja obilaze odjele. Saborske fotelje su u laboratoriju, uredu i sobama. Dvoklik = trk, ali čuju te.',
   map:[
 "##############################",
 "#,,,,,,,,#,,,,,,,,#::::::::::#",
@@ -67,16 +102,16 @@ const LEVELS = [
   patrols:[[[2,8],[27,8],[24,3],[14,3]], [[6,3],[7,1],[6,8],[14,8]], [[5,12],[14,12],[24,13],[14,16]]],
   reinforce:[[27,16],[22,12],[27,10]],
   afere:[
-    {ico:'🔬', name:'Operacijski mikroskop', val:480000, txt:'Plaćen kao da vidi u budućnost.'},
-    {ico:'🤖', name:'Kirurški robot', val:450000, txt:'Robot je jeftin. Ugovor oko njega nije.'},
-    {ico:'✉️', name:'Kuverta u bijeloj kuti', val:75000, txt:'Liječnička tajna.'},
+    {ico:'🔬', name:'Operacijski mikroskop', val:740000, txt:'Proračun oštećen za više od 740.000 €, tvrdi optužnica. Okrivljeni niječu.'},
+    {ico:'✉️', name:'Kuverta od 75.000 €', val:75000, txt:'Toliko je mita, prema optužnici. Bivši ministar kaže da nije.'},
+    {ico:'🤝', name:'Nagodba suokrivljenika', val:100000, txt:'Deset mjeseci, zamijenjeno radom za opće dobro, plus 100.000 € kazne.'},
+    {ico:'⚖️', name:'Spor oko nadležnosti', val:1, txt:'Europski tužitelji ili domaći? Glavni državni odvjetnik zna odgovor.'},
+    {ico:'🏃', name:'Odbjegli suokrivljenik', val:50000, txt:'Pobjegao, pa se predao. Tko bi rekao.'},
     {ico:'📋', name:'Lista čekanja', val:20000, txt:'Prijatelji su odjednom na vrhu.'},
-    {ico:'📝', name:'Nabava bez natječaja', val:300000, txt:'Hitan slučaj. Već treću godinu.'},
-    {ico:'💼', name:'Račun za „konzultacije“', val:60000, txt:'Konzultirao se sam sa sobom.'},
-    {ico:'📱', name:'Poruka „ravnatelj će potpisati“', val:40000, txt:'Ravnatelj je potpisao. Naravno.'}]
+    {ico:'📅', name:'Optužnica na čekanju', val:1, txt:'Godinu i pol kasnije još nije potvrđena. Strpljenje je vrlina.'}]
 },
 {
-  name:'Agencija za poticaje', kicker:'Level 3', par:150, vis:182, patrolSp:56,
+  name:'Agencija za poticaje', kicker:'Level 4', par:150, vis:182, patrolSp:56,
   tip:'Hrpe gnojiva te skrivaju od pogleda, ali usporavaju. Ne ulazi u njih pred istražiteljem.',
   map:[
 "##############################",
@@ -100,11 +135,11 @@ const LEVELS = [
   patrols:[[[15,1],[27,6],[15,6],[17,3]], [[2,8],[27,8],[27,11],[6,11]], [[2,13],[10,16],[10,13],[14,13]]],
   reinforce:[[27,16],[19,13],[27,13]],
   afere:[
+    {ico:'🗺️', name:'Napuhani katastar', val:357000, txt:'Zemlja u registru rasla je brže od kukuruza. Isplaćeno 357.000 €, tvrdi EPPO.'},
+    {ico:'📝', name:'Krivotvorena njiva', val:100000, txt:'Papiri kažu da se zemlja obrađuje. Zemlja o tome ništa ne zna.'},
+    {ico:'🚔', name:'21 uhićenje u jednom danu', val:1, txt:'150 policajaca, 30 pretraga. Krave su svjedoci.'},
+    {ico:'🛢️', name:'JANAF i „institut blagoslova“', val:250000, txt:'Ugovori su išli uz blagoslov. Mito od 1,9 milijuna kuna, sumnja USKOK.'},
+    {ico:'🌬️', name:'Afera Vjetroelektrane', val:200000, txt:'Od 27 okrivljenih, 11 se nagodilo. Vjetar okreće.'},
     {ico:'💩', name:'Faktura za gnojivo', val:36000, txt:'Na papiru ga ima više nego na njivi.'},
-    {ico:'🐄', name:'Poticaj za nepostojeću kravu', val:12000, txt:'Krava je na godišnjem.'},
-    {ico:'🗺️', name:'Lažni katastar', val:90000, txt:'Livada se protegnula do mora.'},
-    {ico:'✉️', name:'Kuverta iz podružnice', val:36000, txt:'Za brže rješavanje predmeta.'},
-    {ico:'🚜', name:'Traktor na firmu', val:80000, txt:'Vozi ga šogor, a vodi se na OPG.'},
-    {ico:'🐑', name:'Potpora za ovce bjegunce', val:24000, txt:'Ovce su pobjegle. Novac nije.'},
-    {ico:'🏡', name:'Ruralni razvoj vikendice', val:150000, txt:'Bazen je ruralni, tvrdi projekt.'}]
+    {ico:'🐄', name:'Poticaj za nepostojeću kravu', val:12000, txt:'Krava je na godišnjem.'}]
 }];

@@ -23,7 +23,7 @@ pa otvori `http://localhost:8000`.
 ```
 index.html      kostur stranice, HUD, gumbi, overlay
 css/style.css   izgled sučelja (HUD, kartice, gumbi)
-js/levels.js    mape, afere, rute istražitelja za sva tri levela
+js/levels.js    mape, afere, rute istražitelja za sve levele
 js/game.js      logika igre, AI istražitelja, crtanje, kontrole
 ```
 
@@ -31,7 +31,7 @@ js/game.js      logika igre, AI istražitelja, crtanje, kontrole
 
 - Klik ili dodir na tlocrt: lik ide tamo (pathfinding)
 - Dvoklik: trči tamo (bučno, istražitelji čuju)
-- Klik na ormar ili `E`: sakrij se / izađi
+- Klik na saborsku fotelju ili `E`: sakrij se iza nje (imunitet, istražitelji te ne vide) / izađi
 - `Q` ili gumb „Nemam komentara“: zamrzne istražitelje u blizini
 - `WASD` / strelice: izravno kretanje, `Shift`: trk
 - `P` ili `Esc`: pauza

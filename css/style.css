@@ -50,7 +50,7 @@ canvas:focus{outline:none}
 .howto li{display:flex;gap:8px;align-items:baseline}
 .howto b{color:var(--gold);white-space:nowrap}
 kbd{font:700 12px var(--body);background:var(--night);border:1px solid var(--line);border-bottom-width:3px;border-radius:6px;padding:0 6px;color:var(--gold);white-space:nowrap}
-.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
 .lvl{font:inherit;color:var(--ink);background:var(--night);border:2px solid var(--line);border-radius:12px;padding:10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
 .lvl:hover:not(:disabled){border-color:var(--gold)}
 .lvl:disabled{opacity:.45;cursor:default}
