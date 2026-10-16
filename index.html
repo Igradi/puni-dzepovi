@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Puni Džepovi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<style>body{margin:0} html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud">
+    <div class="brand">Puni Džepovi<small id="hLevel">Level 1 · Stan</small></div>
+    <div class="pill"><span>Afere</span><b id="hAfere">0/7</b></div>
+    <div class="pill cash"><span>Opljačkano</span><b id="hCash">0 €</b></div>
+    <button class="ibtn" id="pauseBtn">Pauza</button>
+    <button class="ibtn" id="muteBtn" aria-pressed="false">Zvuk: da</button>
+    <button class="ibtn" id="fsBtn" hidden>Cijeli zaslon</button>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="cv" tabindex="0" aria-label="Igralište: tlocrt levela. Klikni ili dodirni mjesto kamo lik treba ići."></canvas>
+    <div class="actions" id="actions">
+      <button class="abtn" id="runBtn" aria-pressed="false">Hod <kbd>Shift</kbd></button>
+      <button class="abtn" id="hideBtn">Sakrij se <kbd>E</kbd></button>
+      <button class="abtn" id="talkBtn">Nemam komentara · 2 <kbd>Q</kbd></button>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+    <div class="overlay" id="overlay"></div>
+  </main>
+
+  <div class="hints"><span><b>Klik</b> = idi tamo</span><span><b>Dvoklik</b> = trči tamo</span><span>Klik na ormar = sakrij se</span><span><kbd>WASD</kbd> isto radi</span><span><kbd>P</kbd> pauza</span></div>
+</div>
+<script src="js/levels.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
