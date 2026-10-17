@@ -326,8 +326,8 @@ function showOverlay(html){ const o=$('overlay'); o.innerHTML=`<div class="card"
 function showMenu(){
   inMenu=true;
   const lv = LEVELS.map((l,k)=>`<button class="lvl" data-lvl="${k}" ${k>save.unlocked?'disabled':''}><span class="n">${l.kicker}${k>save.unlocked?' · zaključan':''}</span><span class="t">${l.name}</span><span class="s">${starStr(save.stars[k]||0)}</span></button>`).join('');
-  showOverlay(`<p class="kicker">Satirička stealth igra</p><h1>Puni Džepovi</h1>
-    <p>Premijer Ladislav Lojtrić, predsjednik PPD-a (Partije Punih Džepova), mora pokupiti sve afere prije nego ga uhvate istražitelji EUROLUPE. Ti si lik sa zlatnim krugom ispod nogu.</p>
+  showOverlay(`<p class="kicker menu-top"><img class="menu-logo" src="assets/logo.png" alt="HDZ">Satirička stealth igra</p><h1>Puni Džepovi</h1>
+    <p>Premijer Andrej Plenković, predsjednik HDZ-a, mora pokupiti sve afere prije nego ga uhvate istražitelji EUROLUPE. Ti si lik sa zlatnim krugom ispod nogu.</p>
     <ul class="howto">
       <li><b>Klik / dodir</b> lik ide tamo</li>
       <li><b>Dvoklik</b> trči tamo, ali bučno</li>
@@ -336,7 +336,7 @@ function showMenu(){
     </ul>
     <div class="levels">${lv}</div>
     <button class="go" id="playBtn">Igraj ${LEVELS[Math.min(save.unlocked,LEVELS.length-1)].kicker}</button>
-    <p class="fine">Satira. Afere u igri temelje se na medijskim izvještajima i sudskim odlukama. Gdje presude nema ili nije pravomoćna, vrijedi presumpcija nevinosti.</p>`);
+    <p class="fine">Satira. Afere u igri temelje se na medijskim izvještajima i sudskim odlukama. Gdje presude nema ili nije pravomoćna, vrijedi presumpcija nevinosti. Igra je fikcija i ne tvrdi da je premijer osobno počinio ijedno kazneno djelo.</p>`);
   $('playBtn').onclick = () => startLevel(Math.min(save.unlocked, LEVELS.length-1));
   document.querySelectorAll('.lvl').forEach(b => b.onclick = () => startLevel(+b.dataset.lvl));
 }

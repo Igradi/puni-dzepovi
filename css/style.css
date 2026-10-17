@@ -40,6 +40,8 @@ canvas:focus{outline:none}
 .toast.warn{border-color:var(--siren)} .toast.warn h3{color:var(--siren)}
 .overlay{position:absolute;inset:0;display:grid;place-items:center;padding:14px;background:rgba(7,11,28,.82);backdrop-filter:blur(3px);overflow:auto;z-index:5}
 .card{width:100%;max-width:560px;background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+.menu-top{display:flex;align-items:center;gap:10px}
+.menu-logo{height:26px;width:auto;border-radius:4px}
 .kicker{margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:800}
 .card h1{margin:0;font:400 clamp(32px,8vw,52px)/0.95 var(--display);color:var(--gold);text-shadow:4px 4px 0 #b3263a;text-wrap:balance}
 .card h1.red{color:var(--siren);text-shadow:4px 4px 0 #4a1220}
